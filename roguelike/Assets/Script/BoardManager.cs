@@ -1,29 +1,33 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class BoardManager : MonoBehaviour
 {
     public int colums = 10, rows = 10;
+    public Vector3 stairPosition;
+    public List<GameObject> potionPositions;
     private List<Vector3> gridPosition = new List<Vector3>();
     private bool[,] wallExists;
+
 
     public GameObject floorTiles;
     public GameObject wallTiles;
     public GameObject enemyTiles;
     public GameObject playerTiles;
+    public GameObject potionTiles;
 
     public GameObject Stairs;
 
     //各タイルの下限と上限数
-    public int wallMinimum = 5, wallMaximum = 9, enemyMinimum = 0, enemyMaximum = 0;
+    public int wallMinimum = 5, wallMaximum = 9, enemyMinimum = 1, enemyMaximum = 1;
+    public int potionMinimum = 1, potionMaximum = 2;
 
-    private void Awake()
-    {
-        wallExists = new bool[colums, rows];
-    }
     void Start()
     {
+        wallExists = new bool[colums, rows];
+        stairPosition = new Vector3(colums - 1, rows - 1, 0);
         SetupStage();
     }
 
@@ -34,7 +38,7 @@ public class BoardManager : MonoBehaviour
     }
 
     //外枠と床（土台）の生成
-    void BoardSetup()
+    void FieldSetup()
     {
         for (int x = 0; x < colums; ++x) 
         {
@@ -50,7 +54,7 @@ public class BoardManager : MonoBehaviour
     }
 
     //タイルを置けるスペースの情報確保
-    void initialiseList()
+    void InitialiseList()
     {
         gridPosition.Clear();
 
@@ -76,7 +80,7 @@ public class BoardManager : MonoBehaviour
     }
 
     //引き値で受け取ったタイルを、ランダムで配置する
-    void LayoutobjectRandom(GameObject tilesArray, int min, int max)
+    void LayoutObjectRandom(GameObject tilesArray, int min, int max)
     {
         int objectCount = Random.Range(min, max + 1);
 
@@ -86,12 +90,22 @@ public class BoardManager : MonoBehaviour
 
             GameObject tileChoice = tilesArray;
 
-            Instantiate(tileChoice, randomPosition, Quaternion.identity);
+            
 
             if (tileChoice == wallTiles)
             {
+                Instantiate(tileChoice, randomPosition, Quaternion.identity);
                 wallExists[(int)randomPosition.y, (int)randomPosition.x] = true;
             }
+            else if (tileChoice == potionTiles)
+            {
+                potionPositions.Add(Instantiate(tileChoice, randomPosition, Quaternion.identity));
+            }
+            else
+            {
+                Instantiate(tileChoice, randomPosition, Quaternion.identity);
+            }
+        
         }
     }
 
@@ -101,22 +115,23 @@ public class BoardManager : MonoBehaviour
         Instantiate(playerTiles, new Vector3(0, 0, 0), Quaternion.identity);
     }
 
-    //最初のもろもろのセッティング
+    //最初に行うステージのセットアップ
     public void SetupStage()
     {
-        BoardSetup();
-        initialiseList();
-        LayoutobjectRandom(wallTiles, wallMinimum, wallMaximum);
-        LayoutobjectRandom(enemyTiles, enemyMinimum, enemyMaximum);
+        FieldSetup();
+        InitialiseList();
+        LayoutObjectRandom(wallTiles, wallMinimum, wallMaximum);
+        LayoutObjectRandom(enemyTiles, enemyMinimum, enemyMaximum);
+        LayoutObjectRandom(potionTiles, potionMinimum, potionMaximum);
         PlayerSetting();
 
-        Instantiate(Stairs, new Vector3(colums - 1, rows - 1, 0), Quaternion.identity);
+        Instantiate(Stairs, stairPosition, Quaternion.identity);
     }
 
     //プレイヤーが進めるか
-    public bool PlayerCheckPosition(PlayerMove player)
+    public bool PlayerCheckPosition(Vector3 player)
     {
-        Vector2 pos = Rounding.Round(player.gameObject.transform.position);
+        Vector2 pos = Rounding.Round(player);
 
         if (!StageOutCheck((int)pos.x, (int)pos.y))
         {
@@ -143,5 +158,13 @@ public class BoardManager : MonoBehaviour
         return (x >= 0 && x < colums && y >= 0 && y < rows);
     }
 
-    
+    public bool HitEnemy(Vector3 player, Vector3 enemy)
+    {
+        if (player == enemy)
+        {
+            return true;
+        }
+
+        return false;
+    }
 }
